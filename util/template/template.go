@@ -1,8 +1,9 @@
 package template
 
 import (
+	"ebreader/config"
 	"encoding/xml"
-	"fmt"
+	"html/template"
 	"io/ioutil"
 	"os"
 )
@@ -10,12 +11,13 @@ import (
 type (
 	//NavMap 解析后的图书目录表
 	NavMap struct {
-		Title string `xml:"docTitle>text"`
-		Navs  []nav  `xml:"navMap>navPoint"`
+		Title  string `xml:"docTitle>text"`
+		Author string `xml:"docAuthor>text"`
+		Navs   []nav  `xml:"navMap>navPoint"`
 	}
 
 	nav struct {
-		Text    string `xml:"navLabel>text"`
+		Title   string `xml:"navLabel>text"`
 		Src     src    `xml:"content"`
 		SubNavs []nav  `xml:"navPoint"`
 	}
@@ -39,10 +41,48 @@ func Build(p string) error {
 		return err
 	}
 
+	// 如果原目录中已存在index.html，则重命名为index.bak.html
+	indexPath := config.Path + "/index.html"
+	os.Rename(indexPath, config.Path+"/index.bak.html")
+
+	err = parseTemplate(indexPath)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-//ParseToc 解析图书的目录
+//渲染模板
+func parseTemplate(file string) error {
+	t := template.New("template")
+	t = t.Funcs(template.FuncMap{"getFirstSrc": getFirstSrc})
+	t, err := t.Parse(htmlTemplate)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	err = t.Execute(f, navMap)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getFirstSrc(navs []nav) string {
+	if navs[0].Src.URL == "index.html" {
+		return "index.bak.html"
+	}
+	return navs[0].Src.URL
+}
+
+//parseToc 解析图书的目录
 func parseToc() error {
 	file, err := os.Open(path)
 	if err != nil {
@@ -58,14 +98,6 @@ func parseToc() error {
 	err = xml.Unmarshal(data, &navMap)
 	if err != nil {
 		return err
-	}
-	fmt.Println("Title: " + navMap.Title)
-	subNav := navMap.Navs[0]
-	for _, nav := range subNav.SubNavs {
-		fmt.Printf("%s: %s\n", nav.Text, nav.Src.URL)
-		for _, nav := range nav.SubNavs {
-			fmt.Printf("\t%s: %s\n", nav.Text, nav.Src.URL)
-		}
 	}
 	return nil
 }

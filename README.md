@@ -1,2 +1,2 @@
-# ebreader
+# EBReader
 一个让你可以在浏览器中阅读Epub电子书的CLI程序，使用Golang编写

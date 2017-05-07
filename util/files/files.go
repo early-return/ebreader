@@ -5,7 +5,6 @@ import (
 	"ebreader/config"
 	"errors"
 	"io"
-	"log"
 	"os"
 	"strings"
 )
@@ -22,8 +21,8 @@ func Unepub() error {
 
 	for _, file := range reader.File {
 		lowerName := strings.ToLower(file.Name)
-		if strings.HasPrefix(lowerName, "oebps") {
-			newName := config.Path + lowerName[strings.Index(lowerName, "/"):]
+		if strings.HasPrefix(lowerName, "oebps") && !strings.HasSuffix(lowerName, "/") {
+			newName := config.Path + file.Name[strings.Index(lowerName, "/"):]
 			err := os.MkdirAll(getPath(newName), 0755)
 			if err != nil {
 				return err
@@ -50,13 +49,14 @@ func Unepub() error {
 }
 
 //Clean 清理工作目录
-func Clean() {
+func Clean() error {
 	if strings.HasSuffix(config.Path, "ebreader") {
 		err := os.RemoveAll(config.Path)
 		if err != nil {
-			log.Fatalln(err)
+			return err
 		}
 	}
+	return nil
 }
 
 //getPath 根据完整路径获得相应的目录
