@@ -29,5 +29,8 @@ func start() {
 	}
 
 	fmt.Println("开始监听本地端口......")
-	server.Run()
+	err = server.Run()
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
